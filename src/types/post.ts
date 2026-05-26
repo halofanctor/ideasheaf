@@ -1,23 +1,16 @@
-import type { VFile } from 'vfile'
 import type { Root } from 'hast'
 
-export type Post = VFile & {
-  slug: string
-  result: Root
-  basename: string
-  path: string
-  data: {
+export type Post = {
     title: string
-    author: string
-    date: string
-    excerpt: string
+    slug: string
+    author?: string
+    date?: string
+    excerpt?: string
     content: string
     toc?: boolean
-    tags: string
+    tags?: string[]
     preview?: boolean
-    ids?: Record<string, string>
     links?: Set<string>
-    backlinks?: Set<string>
+    ast: Root
     [key: string]: unknown
-  }
 }

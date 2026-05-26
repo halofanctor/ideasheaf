@@ -1,0 +1,194 @@
+#+TITLE: Rebirth of Trinculo 
+#+PROPERTY: SUBTITLE : Brand-new Theme & Org-mode Support
+#+DATE: <2017-08-06, Sun>
+#+AUTHOR: Cloudyrie
+#+EXCERPT: Trinculo has been rebuilt recently with a new, developped nearly from scratch theme and org file rendering support enabled.
+#+CATEGORY: Technology
+#+TAGS: webdev tools org-mode pelican
+#+PROPERTY: LANGUAGE en
+#+PROPERTY: SLUG rebirth-of-trinculo
+#+PROPERTY: SAVE_AS posts/rebirth-of-trinculo.html
+#+PROPERTY: URL posts/rebirth-of-trinculo
+#+PROPERTY: DISQUS_IDENTIFIER rebirth-of-trinculo
+#+OPTIONS: toc:nil
+#+OPTIONS: num:nil 
+#+OPTIONS: ^:{}
+
+* Rebirth of Trinculo 
+
+Recently I've rebuilt [[http://blog.cloudyrie.me][Trinculo]] with theme [[https://github.com/Cloudyrie/Omicron][/Omicron/]]
+and enabled org-mode support to meet the need for flexible templates and 
+convenient ways of posting. /Omicron/ was created based on theme
+[[https://html5up.net/alpha][Alpha]] by html5up and distributed under [[https://creativecommons.org/licenses/by/3.0/][CC-BY 3.0]] license. To enable org-mode 
+support, despite of some limitatins, I use the plugin [[https://github.com/getpelican/pelican-plugins/tree/master/org_reader]['org-reader']] 
+for the time being. TL;DR, here's the procedure of Trinculo's rebirth:
+
+** Creating 'Omicron' 
+
+The static blog generator I'm using is [[https://github.com/getpelican/pelican][Pelican]] and the templating engine 
+of it is [[http://jinja.pocoo.org/][jinja]]. A basic template in jinja2 looks like:
+
+#+BEGIN_SRC html
+<!DOCTYPE html>
+<html>
+  <head>
+    {% block head %}
+    <meta charset="utf-8">
+    {% endblock head %}
+  </head>
+  <body>
+  {% include 'header.html' %}
+  {% block web_content %}
+  {% endblock web_content %
+  {% include 'footer.html' %}
+  </body>
+</html>
+#+END_SRC
+
+As this template implies, code share and reuse in jinja2 mainly consists of two 
+parts: composition and inheritance. For composition, we separate those 
+constant partials like header or footer apart from the main content of the
+page and organize them into several pieces of html files, then include them
+in the main page by @@html:<code>@@{% include 'partial_name.html' %}@@html:</code>@@.
+For inheritance, we can simply inherit this basic template like:
+
+#+BEGIN_SRC html
+{% extends 'base.html' %}
+
+{% block head %}
+  {{ super() }}
+  <link rel="shortcut icon" href="/favicon.png">
+{% endblock %}
+{% block web_content %}
+  <div id="content">...</div>
+{% endblock %}
+#+END_SRC
+
+By @@html:<code>@@{% extends 'base.html'%}@@html:</code>@@, the previous 
+template's content is inherited. Implementing more specific templates are
+simplified to adding content to corresponding @@html:<code>@@{% block %}@@html:</code>@@.
+If parent's content is needed in some block, use a @@html:<code>@@{{ super() }}@@html:</code>@@.
+ 
+In Pelican, the parent template is named as @@html:<code>@@base.html@@html:</code>@@.
+We define the general frame of elements in it, and then implement other 
+specific pages by inheriting from it. To ensure the generator understand 
+your templates, you need to follow a particular structure:
+
+#+BEGIN_SRC
+├── static
+│   ├── css
+│   ├── fonts
+│   ├── images
+│   └── js
+└── templates
+    ├── archives.html         // to display archives
+    ├── article.html          // processed for each article
+    ├── author.html           // processed for each author
+    ├── base.html             // parent template for other pages
+    ├── categories.html       // must list all the categories
+    ├── category.html         // processed for each category
+    ├── index.html            // the index (list all the articles)
+    ├── page.html             // processed for each page
+    ├── tag.html              // processed for each tag
+    └── tags.html             // must list all the tags. Can be a tag cloud.
+#+END_SRC
+
+@@html:<code>@@./static@@html:</code>@@ contains all the static files(images, CSS stylesheets, js  
+scripts...), @@html:<code>@@./templates@@html:</code>@@ contains all the templates that will be used to 
+generate pages. During the process of making, contents in @@html:<code>@@./static@@html:</code>@@ will 
+be copied into @@html:<code>@@output/theme@@html:</code>@@ folder, and pages are created by combining 
+templates and static assets according to their types and content. Pelican provides
+a set of mandatory templates, in fact if you omit some of them, Pelican will 
+automatically generate them in the output folder rather than throw an error.
+
+Some issues still remain unsolved in theme /Omicron/. 
+Support for narrow screen(mobile and tablet) hasn't been added yet, but will be contained in
+the next version. The loading of page components are not slient enough, 
+namely, some components which should be invisible at beginning appear 
+for an instant while loading. Another inconvenient setting is, /Omicron/ uses
+a script @@html:<code>@@init.js@@html:</code>@@ to initialize stylesheets,
+but the variable @@html:<code>@@SITEURL@@html:</code>@@ is only feasible in
+html templates(Pelican only detects variables in templates and keeps static
+ files unchanged). Also, we need a absolute indexing in 
+@@html:<code>@@init.js@@html:</code>@@ coz the paths of pages are at different 
+levels. Hence the paths in @@html:<code>@@init.js@@html:</code>@@ need to be updated 
+manually when switching between locally testing and publishing. Please note
+these if you're gonna apply /Omicron/ to your own site (๑•̀ㅂ•́) ✧.
+
+** Adding Org-mode Support
+
+One of the most appealing thing in writing blog posts for an emacser is to 
+wrap the writing procedure into a more complete and convenient workflow: using
+emacs. So I decided to use [[http://http://orgmode.org/][org-mode]] to get my articles well-organized. After
+minutes of googling and searching in the pelican-plugins project, I found a
+plugin for Pelican named 'org-reader'. Given an org file, 'org-reader' can firstly extract
+metadata and content of the file, export it to an JSON object and then pass
+this JOSN structure to a reader in Pelican. The author of 'org-reader' restricts
+the set of metadata users can add to the top of org files, but this will not be 
+an issue because you can modify the @@html:<code>@@org_reader.el@@html:</code>@@
+and @@html:<code>@@org_reader.py@@html:</code>@@ directly to append your 
+customized metadata.
+
+But there actually exists a problem when using 'org-reader', highlighting 
+the code blocks. This function is a necessity for posts under technology 
+related categories, coz they are very likely to contain codes. 
+Highlighting in Markdown or reStructuredText format is kind of easy and 
+enabled by default. But when articles are exported from org files, code blocks
+cannot be highlighted automatically, thus we need to tackle this issue. 
+
+What I've figured out is to discard Pelican's default function and highlight
+the code blocks in org files when exporting. Specificially, we can design a 
+customized backend for 'org-reader' to export org files and using pygments 
+to highlight codes(Assuming you have pygments installed. If not, use
+@@html:<code>@@pip install pygments@@html:</code>@@ in your virtual enviroment).
+Our first step is to define such a function to highlight code blocks:
+
+#+BEGIN_SRC emacs-lisp
+(require 'org)
+(require 'ox)
+(require 'ox-html)
+
+;; Path for pygments or command name
+(defvar pygments-path "pygmentize")
+
+(defun pygments-org-html-code (code contents info)
+  ;; Generating tmp file path.
+  ;; Current date and time hash will ideally pass our needs.
+  (setq temp-source-file (format "/tmp/pygmentize-%s.txt"(md5 (current-time-string))))
+  ;; Writing block contents to the file.
+  (with-temp-file temp-source-file (insert (org-element-property :value code)))
+  ;; Exectuing the shell-command and reading an output
+  (shell-command-to-string (format "%s -l \"%s\" -f html %s"
+    pygments-path
+    (or (org-element-property :language code)
+        "")
+    temp-source-file)))
+#+END_SRC
+
+In this @@html:<code>@@pygments-org-html-code@@html:</code>@@ we firstly 
+export code block to a temporary file, then call a shell script to render
+this temporary file with pygments according to the language. Next, what we
+should do is to define the backend:
+
+#+BEGIN_SRC emacs-lisp
+(org-export-define-derived-backend 'pelican-html 'html
+  :translate-alist '((src-block .  pygments-org-html-code)
+    (example-block . pygments-org-html-code)))
+#+END_SRC
+
+Here we define a backend named 'pelican-html' using @@html:<code>@@org-export-define-derived-backend@@html:</code>@@
+and declare that @@html:<code>@@src-block@@html:</code>@@ and
+@@html:<code>@@example-block@@html:</code>@@ elements should be processed
+by function @@html:<code>@@pygments-org-html-code@@html:</code>@@. At last,
+we need to provide this backend to 'org-reader', just append these lines to
+@@html:<code>@@pelicanconf.py@@html:</code>@@:
+
+#+BEGIN_SRC python
+ORG_READER_EMACS_SETTINGS = os.path.abspath('lisp/org-highlight.el')
+ORG_READER_BACKEND = "'pelican-html"
+#+END_SRC
+
+Where @@html:<code>@@ORG_READER_EMACS_SETTINGS@@html:</code>@@ is path of
+the file contains the definition of previous highlight function and backend, 
+it's okay to use whatever name or path your like. That's it, highlighted 
+code blocks are now a simple 'make' command from you, bravo!

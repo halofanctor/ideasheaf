@@ -1,0 +1,4 @@
+#+title: Installing Gentoo/Linux in 2026
+#+subtitle: A hands-on tutorial
+#+date: <2026-05-26, Tue>
+#+tags: os general others test
